@@ -6,6 +6,7 @@ import { FeedbackStatus } from '@/types/feedback';
 
 export default function FloatingFeedbackWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [email, setEmail] = useState(''); 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const { addFeedback } = useFeedback();
@@ -78,6 +79,19 @@ export default function FloatingFeedbackWidget() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe the feature you'd like to see..."
                 rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Enter your Email ID
+              </label>
+              <textarea
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Please enter your email ID"
+                rows={1}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
                 required
               />
