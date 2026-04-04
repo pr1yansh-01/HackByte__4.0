@@ -82,11 +82,6 @@ export function getKeywordFeatureSuggestions(query: string): string[] {
 
   if (out.length > 0) return out;
 
-  return [
-    // `Expand on: ${query.trim()}`,
-    // 'Add user preferences for this feature area',
-    // 'Improve performance and loading times',
-    // 'Accessibility improvements (keyboard & screen readers)',
-    `Feature not found, please try again with a different query`
-  ].slice(0, 4);
+  // No keyword match: return nothing so the user keeps their own title and no bogus list item appears.
+  return [];
 }

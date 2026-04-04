@@ -243,7 +243,7 @@ export default function FloatingFeedbackWidget() {
                             type="button"
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => pickSuggestion(s)}
-                            className="flex-1 text-left px-3 py-2 text-sm text-gray-800 hover:bg-indigo-50 hover:text-indigo-900 transition-colors min-w-0"
+                            className="flex-1 min-w-0 text-left px-3 py-2 text-sm text-gray-800 hover:bg-indigo-50 hover:text-indigo-900 transition-colors"
                           >
                             {s}
                           </button>
