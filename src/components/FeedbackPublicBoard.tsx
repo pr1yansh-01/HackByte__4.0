@@ -5,7 +5,6 @@ import { useFeedback } from '@/context/FeedbackContext';
 import { Feedback, FeedbackReply, FeedbackStatus } from '@/types/feedback';
 import { addMyReplyId, getMyReplyIds } from '@/lib/replyClientStorage';
 import ReplyVoteControls from '@/components/ReplyVoteControls';
-import FeatureIdeaVoteControls from '@/components/FeatureIdeaVoteControls';
 
 const statusLabel: Record<FeedbackStatus, string> = {
   pending: 'Pending',
@@ -178,10 +177,6 @@ export default function FeedbackPublicBoard() {
               {fb.votes === 1 ? 'vote' : 'votes'} · {fb.replies.length}{' '}
               {fb.replies.length === 1 ? 'comment' : 'comments'}
             </p>
-
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <FeatureIdeaVoteControls feedbackId={fb.id} votes={fb.votes} />
-            </div>
 
             <div className="mt-4">
               <h4 className="text-sm font-semibold text-gray-950 mb-1">Comments</h4>

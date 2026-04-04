@@ -54,9 +54,13 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ totals, myVotes }, { headers: corsHeaders });
 }
 
-/** POST: toggle vote for key (body.key); requires x-session-id */
+/**
+ * POST body:
+ * - { key, increment: true } + x-session-id — add at most one vote per session per key (extra clicks no-op).
+ * - { key } + x-session-id — toggle vote on/off for that session (legacy).
+ */
 export async function POST(request: NextRequest) {
-  let body: { key?: string };
+  let body: { key?: string; increment?: boolean };
   try {
     body = await request.json();
   } catch {
@@ -75,6 +79,46 @@ export async function POST(request: NextRequest) {
   }
 
   const key = normalizeFeatureKey(rawKey);
+  const store = await readStore();
+  const entry: VoteEntry = store[key] ?? { total: 0, sessions: {} };
+
+  if (body.increment === true) {
+    let sessionId = request.headers.get('x-session-id');
+    if (!sessionId?.trim()) {
+      return NextResponse.json(
+        { error: 'x-session-id header required' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    sessionId = sessionId.trim().slice(0, 128);
+
+    if (entry.sessions[sessionId]) {
+      return NextResponse.json(
+        {
+          key,
+          total: entry.total,
+          userVoted: true,
+          alreadyVoted: true,
+        },
+        { headers: corsHeaders }
+      );
+    }
+
+    entry.sessions[sessionId] = true;
+    entry.total += 1;
+    store[key] = entry;
+    await writeStore(store);
+    return NextResponse.json(
+      {
+        key,
+        total: entry.total,
+        userVoted: true,
+        alreadyVoted: false,
+      },
+      { headers: corsHeaders }
+    );
+  }
+
   let sessionId = request.headers.get('x-session-id');
   if (!sessionId?.trim()) {
     return NextResponse.json(
@@ -83,9 +127,6 @@ export async function POST(request: NextRequest) {
     );
   }
   sessionId = sessionId.trim().slice(0, 128);
-
-  const store = await readStore();
-  const entry: VoteEntry = store[key] ?? { total: 0, sessions: {} };
 
   if (entry.sessions[sessionId]) {
     delete entry.sessions[sessionId];

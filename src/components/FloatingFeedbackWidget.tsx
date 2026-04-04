@@ -1,22 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFeedback } from '@/context/FeedbackContext';
 import { Feedback } from '@/types/feedback';
-import FeatureIdeaVoteControls from '@/components/FeatureIdeaVoteControls';
-import { getFeedbackIdeaUpvoted } from '@/lib/featureVoteStorage';
+import { normalizeFeatureKey } from '@/lib/featureVoteKey';
+import { getOrCreateFeatureVoteSessionId } from '@/lib/featureVoteSession';
 
 function normalizeTitle(t: string) {
   return t.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
-function findFeedbackByTitle(feedbacks: Feedback[], raw: string): Feedback | null {
-  const n = normalizeTitle(raw);
-  if (!n) return null;
-  return feedbacks.find((f) => normalizeTitle(f.title) === n) ?? null;
-}
-
-/** Match API suggestion text to a board item so every suggestion row can offer voting when possible. */
 function findSuggestionMatch(feedbacks: Feedback[], suggestion: string): Feedback | null {
   const n = normalizeTitle(suggestion);
   if (!n) return null;
@@ -39,14 +32,37 @@ export default function FloatingFeedbackWidget() {
   const [description, setDescription] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionLoading, setSuggestionLoading] = useState(false);
-  const [votedExistingId, setVotedExistingId] = useState<string | null>(null);
-  const { feedbacks, addFeedback, voteFeedback } = useFeedback();
+  const [voteTotals, setVoteTotals] = useState<Record<string, number>>({});
+  const [myVotes, setMyVotes] = useState<Record<string, boolean>>({});
+  const [voteSessionId, setVoteSessionId] = useState('');
+  const votingInFlightRef = useRef<Set<string>>(new Set());
+  const { feedbacks, addFeedback, refreshFeatureVotes } = useFeedback();
+
+  useEffect(() => {
+    setVoteSessionId(getOrCreateFeatureVoteSessionId());
+  }, []);
+
+  const refreshVoteTotals = useCallback(async () => {
+    if (!voteSessionId) return;
+    try {
+      const res = await fetch(
+        `/api/feature-votes?sessionId=${encodeURIComponent(voteSessionId)}`
+      );
+      const data = (await res.json()) as {
+        totals?: Record<string, number>;
+        myVotes?: Record<string, boolean>;
+      };
+      setVoteTotals(data.totals ?? {});
+      setMyVotes((prev) => ({ ...prev, ...(data.myVotes ?? {}) }));
+    } catch {
+      /* ignore */
+    }
+  }, [voteSessionId]);
 
   useEffect(() => {
     if (!isOpen) {
       setSuggestions([]);
       setSuggestionLoading(false);
-      setVotedExistingId(null);
       return;
     }
 
@@ -69,7 +85,6 @@ export default function FloatingFeedbackWidget() {
         });
         const data = (await res.json()) as {
           suggestions?: string[];
-          source?: string;
         };
         setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
       } catch {
@@ -88,43 +103,88 @@ export default function FloatingFeedbackWidget() {
   }, [title, isOpen]);
 
   useEffect(() => {
-    if (!votedExistingId) return;
-    const fb = feedbacks.find((f) => f.id === votedExistingId);
-    if (!fb || normalizeTitle(fb.title) !== normalizeTitle(title)) {
-      setVotedExistingId(null);
-    }
-  }, [title, votedExistingId, feedbacks]);
+    if (!isOpen || !voteSessionId) return;
+    const q = title.trim();
+    if (q.length < 2) return;
+    if (!suggestionLoading && suggestions.length === 0) return;
+    void refreshVoteTotals();
+  }, [
+    isOpen,
+    voteSessionId,
+    title,
+    suggestions,
+    suggestionLoading,
+    refreshVoteTotals,
+  ]);
 
   const showSuggestionPanel =
     isOpen && title.trim().length >= 2 && (suggestionLoading || suggestions.length > 0);
 
-  const titleMatch = findFeedbackByTitle(feedbacks, title);
-  const submitAsVote = Boolean(titleMatch || votedExistingId);
+  /** Counts come only from the vote store so new suggestions show 0 until someone votes. */
+  const countForSuggestion = (s: string) => {
+    const k = normalizeFeatureKey(s);
+    return voteTotals[k] ?? 0;
+  };
+
+  const upvoteSuggestion = async (s: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const k = normalizeFeatureKey(s);
+    if (myVotes[k] || !voteSessionId || votingInFlightRef.current.has(k)) return;
+
+    votingInFlightRef.current.add(k);
+    setVoteTotals((prev) => ({ ...prev, [k]: (prev[k] ?? 0) + 1 }));
+    setMyVotes((prev) => ({ ...prev, [k]: true }));
+
+    const revertOptimistic = () => {
+      setVoteTotals((prev) => ({
+        ...prev,
+        [k]: Math.max(0, (prev[k] ?? 0) - 1),
+      }));
+      setMyVotes((prev) => {
+        const next = { ...prev };
+        delete next[k];
+        return next;
+      });
+    };
+
+    try {
+      const res = await fetch('/api/feature-votes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': voteSessionId,
+        },
+        body: JSON.stringify({ key: s, increment: true }),
+      });
+      const data = (await res.json()) as {
+        key?: string;
+        total?: number;
+        alreadyVoted?: boolean;
+      };
+      if (!res.ok) {
+        revertOptimistic();
+        await refreshVoteTotals();
+        refreshFeatureVotes();
+        return;
+      }
+      const resKey = data.key ?? k;
+      if (data.total !== undefined) {
+        setVoteTotals((prev) => ({ ...prev, [resKey]: data.total! }));
+      }
+      setMyVotes((prev) => ({ ...prev, [resKey]: true }));
+      refreshFeatureVotes();
+    } catch {
+      revertOptimistic();
+      await refreshVoteTotals();
+      refreshFeatureVotes();
+    } finally {
+      votingInFlightRef.current.delete(k);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (submitAsVote) {
-      const target =
-        titleMatch ??
-        (votedExistingId
-          ? feedbacks.find((f) => f.id === votedExistingId) ?? null
-          : null);
-      if (!target) return;
-
-      if (!votedExistingId && titleMatch && !getFeedbackIdeaUpvoted(target.id)) {
-        voteFeedback(target.id, 'up');
-      }
-
-      setTitle('');
-      setDescription('');
-      setEmail('');
-      setSuggestions([]);
-      setVotedExistingId(null);
-      setIsOpen(false);
-      return;
-    }
-
     if (!title.trim() || !description.trim()) return;
     if (!email.trim()) return;
 
@@ -139,7 +199,6 @@ export default function FloatingFeedbackWidget() {
     setDescription('');
     setEmail('');
     setSuggestions([]);
-    setVotedExistingId(null);
     setIsOpen(false);
   };
 
@@ -148,12 +207,6 @@ export default function FloatingFeedbackWidget() {
     const fb = findSuggestionMatch(feedbacks, s);
     if (fb) setDescription(fb.description);
     setSuggestions([]);
-  };
-
-  const handleSuggestionUpvoted = (fb: Feedback) => {
-    setVotedExistingId(fb.id);
-    setTitle(fb.title);
-    setDescription(fb.description);
   };
 
   return (
@@ -212,33 +265,36 @@ export default function FloatingFeedbackWidget() {
                   )}
                   <ul className="max-h-52 overflow-y-auto py-1">
                     {suggestions.map((s, i) => {
-                      const fb = findSuggestionMatch(feedbacks, s);
+                      const count = countForSuggestion(s);
+                      const voted = !!myVotes[normalizeFeatureKey(s)];
                       return (
                         <li
                           key={`${i}-${s.slice(0, 24)}`}
                           className="flex items-stretch border-b border-gray-50 last:border-0"
                         >
-                          {fb ? (
-                            <FeatureIdeaVoteControls
-                              feedbackId={fb.id}
-                              votes={fb.votes}
-                              compact
-                              onUpvoted={() => handleSuggestionUpvoted(fb)}
-                            />
-                          ) : (
-                            <div
-                              className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 bg-gray-50/80 border-r border-gray-100 shrink-0 w-[3.25rem]"
-                              title="Not on the board yet — pick the title to submit a new idea"
+                          <div className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 bg-gray-50 border-r border-gray-100 shrink-0 w-[3.25rem]">
+                            <button
+                              type="button"
+                              disabled={voted}
+                              onClick={(e) => upvoteSuggestion(s, e)}
+                              className={`text-xs leading-none px-1.5 py-0.5 rounded transition-colors ${
+                                voted
+                                  ? 'text-green-600 bg-green-50 cursor-default'
+                                  : 'text-gray-600 hover:text-green-600 hover:bg-green-50'
+                              }`}
+                              aria-label={
+                                voted
+                                  ? 'You already upvoted this suggestion'
+                                  : 'Upvote this suggestion'
+                              }
+                              title={voted ? 'Already upvoted' : 'Upvote once'}
                             >
-                              <span className="text-[10px] text-gray-300 leading-none px-1.5 py-0.5">
-                                ▲
-                              </span>
-                              <span className="text-xs font-semibold text-gray-400 tabular-nums">0</span>
-                              <span className="text-[10px] text-gray-300 leading-none px-1.5 py-0.5">
-                                ▼
-                              </span>
-                            </div>
-                          )}
+                              ▲
+                            </button>
+                            <span className="text-xs font-semibold text-gray-800 tabular-nums min-w-[1rem] text-center">
+                              {count}
+                            </span>
+                          </div>
                           <button
                             type="button"
                             onMouseDown={(e) => e.preventDefault()}
@@ -262,13 +318,9 @@ export default function FloatingFeedbackWidget() {
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder={
-                  submitAsVote
-                    ? 'Optional — voting on an existing request'
-                    : "Describe the feature you'd like to see..."
-                }
+                placeholder="Describe the feature you'd like to see..."
                 rows={3}
-                required={!submitAsVote}
+                required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
               />
             </div>
@@ -282,7 +334,7 @@ export default function FloatingFeedbackWidget() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Please enter your email ID"
                 rows={1}
-                required={!submitAsVote}
+                required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
               />
             </div>
@@ -291,7 +343,7 @@ export default function FloatingFeedbackWidget() {
               type="submit"
               className="w-full bg-primary hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
             >
-              {submitAsVote ? 'Submit vote' : 'Submit Request'}
+              Submit Request
             </button>
           </form>
         </div>
