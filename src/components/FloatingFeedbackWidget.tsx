@@ -68,14 +68,12 @@ export default function FloatingFeedbackWidget() {
     e.preventDefault();
     if (!title.trim() || !description.trim()) return;
 
-   addFeedback({
-  title,
-  description,
-  priority: 'medium',
-  status: 'pending',
-  votes: 0,              // 👈 ADD
-  userVote: undefined,   // 👈 ADD
-});
+    addFeedback({
+      title,
+      description,
+      priority: 'medium',
+      status: 'pending',
+    });
 
     setTitle('');
     setDescription('');

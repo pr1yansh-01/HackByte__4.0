@@ -1,9 +1,5 @@
 {
   "node": {},
   "edge": {},
-<<<<<<< HEAD
-  "encryptionKey": "KLjfmlRymLsWASjgACvgUtjhm4R/bHGgvXdMJ5ZOaac="
-=======
-  "encryptionKey": "4t6tknNKc+cxbzCTND7gDDY4LK/z+fSHXGoM+imt+qY="
->>>>>>> 9ab6d5d ( fixed a bug in  rendering of cards at home page)
+  "encryptionKey": "E5pcUJ503CMfCaoVIra7YQFSOg2GcTfra2didHrRJ+c="
 }

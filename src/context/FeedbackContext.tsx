@@ -42,7 +42,10 @@ function adjustReplyVoteCounts(
 interface FeedbackContextType {
   feedbacks: Feedback[];
   addFeedback: (
-    feedback: Omit<Feedback, 'id' | 'createdAt' | 'updatedAt' | 'similarCount' | 'replies'>
+    feedback: Omit<
+      Feedback,
+      'id' | 'createdAt' | 'updatedAt' | 'similarCount' | 'replies' | 'votes' | 'userVote'
+    >
   ) => void;
   addReply: (
     feedbackId: string,
@@ -107,7 +110,10 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   ]);
 
   const addFeedback = (
-    feedback: Omit<Feedback, 'id' | 'createdAt' | 'updatedAt' | 'similarCount' | 'replies'>
+    feedback: Omit<
+      Feedback,
+      'id' | 'createdAt' | 'updatedAt' | 'similarCount' | 'replies' | 'votes' | 'userVote'
+    >
   ) => {
     const newFeedback: Feedback = {
       ...feedback,
@@ -255,17 +261,12 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       value={{
         feedbacks,
         addFeedback,
-<<<<<<< HEAD
         addReply,
         voteOnReply,
         deleteReply,
         updateFeedbackStatus,
         deleteFeedback,
-=======
-        updateFeedbackStatus,
-        deleteFeedback,
-        voteFeedback, 
->>>>>>> b4101b8 (added voting feature for ideas to be shown in dashboard)
+        voteFeedback,
       }}
     >
       {children}
