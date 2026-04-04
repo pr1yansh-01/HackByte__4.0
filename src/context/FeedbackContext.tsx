@@ -125,16 +125,52 @@ function seedFeedbacks(): Feedback[] {
 }
 
 export function FeedbackProvider({ children }: { children: ReactNode }) {
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>(seedFeedbacks);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
 
-  const addFeedback = (
+  const fetchFeedbacks = async () => {
+    try {
+      const response = await fetch('/api/feedback');
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        const mapped = data.map((f: any) => ({
+          ...f,
+          id: f._id,
+          createdAt: new Date(f.createdAt),
+          updatedAt: new Date(f.updatedAt),
+          replies: f.replies?.map((r: any) => ({ ...r, createdAt: new Date(r.createdAt) })) || []
+        }));
+        setFeedbacks(assignPrioritiesByVoteRank(mapped));
+      }
+    } catch (error) {
+      console.error('Failed to fetch feedbacks:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchFeedbacks();
+  }, []);
+
+  const addFeedback = async (
     feedback: Omit<
       Feedback,
       'id' | 'createdAt' | 'updatedAt' | 'similarCount' | 'replies' | 'votes' | 'userVote'
     >
   ) => {
-    const key = normalizeFeatureKey(feedback.title);
-    const apply = (voteTotal: number) => {
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(feedback),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        fetchFeedbacks();
+      }
+    } catch (error) {
+      console.error('Failed to add feedback:', error);
+      
+      // Fallback to local state if API fails (for offline dev)
       const newFeedback: Feedback = {
         ...feedback,
         id: Date.now().toString(),
@@ -142,21 +178,11 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
         replies: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-        votes: voteTotal,
+        votes: 0,
         userVote: undefined,
       };
-      setFeedbacks((prev) =>
-        assignPrioritiesByVoteRank([newFeedback, ...prev])
-      );
-    };
-
-    fetch('/api/feature-votes')
-      .then((r) => r.json())
-      .then((data: { totals?: Record<string, number> }) => {
-        const voteTotal = data.totals?.[key] ?? 0;
-        apply(voteTotal);
-      })
-      .catch(() => apply(0));
+      setFeedbacks((prev) => assignPrioritiesByVoteRank([newFeedback, ...prev]));
+    }
   };
 
   /** Merge server vote totals into feedback rows by title key and re-rank priority. */
