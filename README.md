@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- Banner / Logo -->
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=FeaturePulse&fontSize=70&fontColor=fff&animation=fadeIn&fontAlignY=35&desc=AI-Powered%20Feature%20Feedback%20System&descAlignY=55&descSize=20" width="100%"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=FeatureHub&fontSize=70&fontColor=fff&animation=fadeIn&fontAlignY=35&desc=AI-Powered%20Feature%20Feedback%20System&descAlignY=55&descSize=20" width="100%"/>
 
 <br/>
 
@@ -44,9 +44,9 @@
 
 ## 🌟 About the Project
 
-**FeaturePulse** is a modern, AI-powered feature feedback system built during **HackByte 4.0**. It bridges the gap between users and product teams by providing an intelligent platform for submitting, analyzing, and prioritizing feature requests — all enhanced by Google's Gemini AI and stunning Three.js 3D visuals.
+**FeatureHub** is a modern, AI-powered feature feedback system built during **HackByte 4.0**. It bridges the gap between users and product teams by providing an intelligent platform for submitting, analyzing, and prioritizing feature requests — all enhanced by Google's Gemini AI and stunning Three.js 3D visuals.
 
-Traditional feedback tools are passive and manual. FeaturePulse is **smart, beautiful, and actionable**.
+Traditional feedback tools are passive and manual. FeatureHub is **smart, beautiful, and actionable**.
 
 ---
 
