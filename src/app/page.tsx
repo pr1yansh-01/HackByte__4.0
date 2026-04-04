@@ -1,7 +1,7 @@
 'use client';
 
 import FloatingFeedbackWidget from '@/components/FloatingFeedbackWidget';
-import FeedbackDashboard from '@/components/FeedbackDashboard';
+import FeedbackPublicBoard from '@/components/FeedbackPublicBoard';
 import Link from 'next/link';
 
 export default function Home() {
@@ -155,6 +155,8 @@ export default function Home() {
             </p>
           </div>
         </div>
+
+        <FeedbackPublicBoard />
       </div>
 
       <FloatingFeedbackWidget />

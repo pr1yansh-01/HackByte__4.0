@@ -1,15 +1,67 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useFeedback } from '@/context/FeedbackContext';
 import { FeedbackStatus } from '@/types/feedback';
 
 export default function FloatingFeedbackWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  const [email, setEmail] = useState(''); 
+  const [email, setEmail] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestionLoading, setSuggestionLoading] = useState(false);
+  const [suggestionSource, setSuggestionSource] = useState<string>('');
   const { addFeedback } = useFeedback();
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSuggestions([]);
+      setSuggestionLoading(false);
+      return;
+    }
+
+    const q = title.trim();
+    if (q.length < 2) {
+      setSuggestions([]);
+      setSuggestionLoading(false);
+      return;
+    }
+
+    const ac = new AbortController();
+    const t = window.setTimeout(async () => {
+      setSuggestionLoading(true);
+      try {
+        const res = await fetch('/api/feature-suggestions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: title }),
+          signal: ac.signal,
+        });
+        const data = (await res.json()) as {
+          suggestions?: string[];
+          source?: string;
+        };
+        setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+        setSuggestionSource(data.source ?? '');
+      } catch {
+        if (!ac.signal.aborted) {
+          setSuggestions([]);
+          setSuggestionSource('');
+        }
+      } finally {
+        if (!ac.signal.aborted) setSuggestionLoading(false);
+      }
+    }, 450);
+
+    return () => {
+      clearTimeout(t);
+      ac.abort();
+    };
+  }, [title, isOpen]);
+
+  const showSuggestionPanel =
+    isOpen && title.trim().length >= 2 && (suggestionLoading || suggestions.length > 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +76,13 @@ export default function FloatingFeedbackWidget() {
 
     setTitle('');
     setDescription('');
+    setSuggestions([]);
     setIsOpen(false);
+  };
+
+  const pickSuggestion = (s: string) => {
+    setTitle(s);
+    setSuggestions([]);
   };
 
   return (
@@ -36,6 +94,7 @@ export default function FloatingFeedbackWidget() {
               Submit Feature Request
             </h3>
             <button
+              type="button"
               onClick={() => setIsOpen(false)}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
@@ -56,18 +115,56 @@ export default function FloatingFeedbackWidget() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Feature Title
-              </label>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Feature Title
+                </label>
+                {/* <span className="text-[10px] font-medium uppercase tracking-wide text-indigo-600">
+                  AI suggestions
+                </span> */}
+              </div>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter feature title"
+                placeholder="Start typing - e.g. dark, bug, export…"
+                autoComplete="off"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                 required
               />
+
+              {showSuggestionPanel && (
+                <div className="absolute left-0 right-0 top-full mt-1 z-[60] rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden">
+                  {suggestionLoading && suggestions.length === 0 && (
+                    <div className="px-3 py-2.5 text-xs text-gray-500 flex items-center gap-2">
+                      <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                      Generating suggestions…
+                    </div>
+                  )}
+                  <ul className="max-h-52 overflow-y-auto py-1">
+                    {suggestions.map((s, i) => (
+                      <li key={`${i}-${s.slice(0, 24)}`}>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => pickSuggestion(s)}
+                          className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-indigo-50 hover:text-indigo-900 transition-colors"
+                        >
+                          {s}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {!suggestionLoading && suggestions.length > 0 && (
+                    <div className="px-3 py-1.5 border-t border-gray-100 text-[10px] text-gray-400">
+                      {/* {suggestionSource === 'gemini'
+                        ? 'Powered by Google Gemini'
+                        : 'Keyword suggestions (add GEMINI_API_KEY for AI)'} */}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
@@ -97,7 +194,6 @@ export default function FloatingFeedbackWidget() {
               />
             </div>
 
-
             <button
               type="submit"
               className="w-full bg-primary hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
@@ -109,6 +205,7 @@ export default function FloatingFeedbackWidget() {
       )}
 
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="floating-widget bg-primary hover:bg-blue-600 text-white p-4 rounded-full shadow-lg transition-all hover:scale-105 flex items-center gap-2"
       >
