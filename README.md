@@ -59,7 +59,7 @@ Product teams are overwhelmed with unstructured user feedback scattered across c
 - 🔴 **No actionable insights** — raw feedback rarely translates to decisions
 - 🔴 **User disengagement** — clunky forms lead to low submission rates
 
-FeaturePulse solves all of these with AI analysis and immersive UX.
+FeatureHub solves all of these with AI analysis and immersive UX.
 
 ---
 
@@ -331,8 +331,6 @@ This project is open source and available under the [MIT License](LICENSE).
 ---
 
 <div align="center">
-
-**Built with ❤️ at HackByte 4.0**
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=100&section=footer" width="100%"/>
 
