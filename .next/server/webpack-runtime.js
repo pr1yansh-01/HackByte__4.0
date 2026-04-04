@@ -125,7 +125,11 @@
 /******/ 	
 /******/ 	/* webpack/runtime/getFullHash */
 /******/ 	(() => {
+<<<<<<< HEAD
 /******/ 		__webpack_require__.h = () => ("14e8e6ae7f668971")
+=======
+/******/ 		__webpack_require__.h = () => ("68ecc07d85a715e4")
+>>>>>>> 9ab6d5d ( fixed a bug in  rendering of cards at home page)
 /******/ 	})();
 /******/ 	
 /******/ 	/* webpack/runtime/hasOwnProperty shorthand */

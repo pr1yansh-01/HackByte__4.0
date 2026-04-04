@@ -79,7 +79,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="mt-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
             <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
               <svg
@@ -152,6 +152,56 @@ export default function Home() {
             <p className="text-gray-600">
               Vote for features that matter most to you. Help prioritize the
               roadmap together.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
+            <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mb-4">
+              <svg
+                className="w-6 h-6 text-violet-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 9l4-4 4 4m0 6l-4 4-4-4"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Upvote &amp; downvote
+            </h3>
+            <p className="text-gray-600">
+              Show support for ideas you love or signal when something is less
+              important—every vote shapes what we build next.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
+            <div className="w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center mb-4">
+              <svg
+                className="w-6 h-6 text-rose-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Email when it&apos;s done
+            </h3>
+            <p className="text-gray-600">
+              Get notified by email the moment your request moves to completed,
+              so you never miss an update.
             </p>
           </div>
         </div>
