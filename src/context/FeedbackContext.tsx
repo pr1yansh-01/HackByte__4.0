@@ -1,7 +1,15 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 import { clearReplyVote, removeMyReplyId } from '@/lib/replyClientStorage';
+import { normalizeFeatureKey } from '@/lib/featureVoteKey';
+import { assignPrioritiesByVoteRank } from '@/lib/priorityFromVotes';
 import {
   Feedback,
   FeedbackReply,
@@ -61,13 +69,12 @@ interface FeedbackContextType {
   deleteReply: (feedbackId: string, replyId: string) => void;
   updateFeedbackStatus: (id: string, status: FeedbackStatus) => void;
   deleteFeedback: (id: string) => void;
-  voteFeedback: (id: string, type: 'up' | 'down') => void; 
 }
 
 const FeedbackContext = createContext<FeedbackContextType | undefined>(undefined);
 
-export function FeedbackProvider({ children }: { children: ReactNode }) {
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>([
+function seedFeedbacks(): Feedback[] {
+  const raw: Feedback[] = [
     {
       id: '1',
       title: 'Dark Mode Support',
@@ -78,36 +85,41 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       createdAt: new Date('2024-01-15'),
       updatedAt: new Date('2024-01-20'),
       similarCount: 0,
-      votes: 0,              
-      userVote: undefined,     
+      votes: 0,
+      userVote: undefined,
     },
     {
       id: '2',
       title: 'Export to PDF',
       description: 'Allow users to export reports as PDF',
       status: 'in_progress',
-      priority: 'high',
+      priority: 'medium',
       replies: [],
       createdAt: new Date('2024-01-18'),
       updatedAt: new Date('2024-01-22'),
       similarCount: 0,
-      votes: 0,                
-      userVote: undefined,     
+      votes: 0,
+      userVote: undefined,
     },
     {
       id: '3',
       title: 'Mobile App Integration',
       description: 'Sync data with mobile application',
       status: 'pending',
-      priority: 'low',
+      priority: 'medium',
       replies: [],
       createdAt: new Date('2024-01-20'),
       updatedAt: new Date('2024-01-20'),
       similarCount: 0,
-      votes: 0,                
-      userVote: undefined,     
+      votes: 0,
+      userVote: undefined,
     },
-  ]);
+  ];
+  return assignPrioritiesByVoteRank(raw);
+}
+
+export function FeedbackProvider({ children }: { children: ReactNode }) {
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>(seedFeedbacks);
 
   const addFeedback = (
     feedback: Omit<
@@ -115,18 +127,55 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       'id' | 'createdAt' | 'updatedAt' | 'similarCount' | 'replies' | 'votes' | 'userVote'
     >
   ) => {
-    const newFeedback: Feedback = {
-      ...feedback,
-      id: Date.now().toString(),
-      similarCount: 0,
-      replies: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      votes: 0,              
-      userVote: undefined,   
+    const key = normalizeFeatureKey(feedback.title);
+    const apply = (voteTotal: number) => {
+      const newFeedback: Feedback = {
+        ...feedback,
+        id: Date.now().toString(),
+        similarCount: 0,
+        replies: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        votes: voteTotal,
+        userVote: undefined,
+      };
+      setFeedbacks((prev) =>
+        assignPrioritiesByVoteRank([newFeedback, ...prev])
+      );
     };
-    setFeedbacks((prev) => [newFeedback, ...prev]);
+
+    fetch('/api/feature-votes')
+      .then((r) => r.json())
+      .then((data: { totals?: Record<string, number> }) => {
+        const voteTotal = data.totals?.[key] ?? 0;
+        apply(voteTotal);
+      })
+      .catch(() => apply(0));
   };
+
+  /** Merge server vote totals into feedback rows by title key and re-rank priority. */
+  useEffect(() => {
+    const sync = () => {
+      fetch('/api/feature-votes')
+        .then((r) => r.json())
+        .then((data: { totals?: Record<string, number> }) => {
+          const totals = data.totals ?? {};
+          setFeedbacks((prev) => {
+            const updated = prev.map((f) => {
+              const k = normalizeFeatureKey(f.title);
+              const t = totals[k];
+              if (t === undefined) return f;
+              return { ...f, votes: t, updatedAt: new Date() };
+            });
+            return assignPrioritiesByVoteRank(updated);
+          });
+        })
+        .catch(() => {});
+    };
+    sync();
+    const id = window.setInterval(sync, 12_000);
+    return () => clearInterval(id);
+  }, []);
 
   const addReply = (
     feedbackId: string,
@@ -222,39 +271,10 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
           removeMyReplyId(r.id);
         });
       }
-      return prev.filter((fb) => fb.id !== id);
+      const next = prev.filter((fb) => fb.id !== id);
+      return assignPrioritiesByVoteRank(next);
     });
   };
-
-  
-  const voteFeedback = (id: string, type: 'up' | 'down') => {
-  setFeedbacks((prev) =>
-    prev.map((item) => {
-      if (item.id !== id) return item;
-
-      let newVotes = item.votes;
-
-      if (type === 'up') {
-      
-        if (newVotes === 0) {
-          newVotes = 1;
-        }
-      }
-
-      if (type === 'down') {
-        
-        if (newVotes === 1) {
-          newVotes = 0;
-        }
-      }
-
-      return {
-        ...item,
-        votes: newVotes,
-      };
-    })
-  );
-};
 
   return (
     <FeedbackContext.Provider
@@ -266,7 +286,6 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
         deleteReply,
         updateFeedbackStatus,
         deleteFeedback,
-        voteFeedback,
       }}
     >
       {children}

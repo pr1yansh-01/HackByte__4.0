@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useFeedback } from '@/context/FeedbackContext';
-import { FeedbackStatus } from '@/types/feedback';
- 
+import { normalizeFeatureKey } from '@/lib/featureVoteKey';
 
 export default function FloatingFeedbackWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,29 +12,61 @@ export default function FloatingFeedbackWidget() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionLoading, setSuggestionLoading] = useState(false);
   const [suggestionSource, setSuggestionSource] = useState<string>('');
-  /** Per-suggestion title string: vote count and whether this browser session toggled it on. */
-  const [suggestionVotes, setSuggestionVotes] = useState<
-    Record<string, { count: number; userVoted: boolean }>
-  >({});
+  const [voteSessionId] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    let id = localStorage.getItem('fv_session');
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem('fv_session', id);
+    }
+    return id;
+  });
+  const [serverTotals, setServerTotals] = useState<Record<string, number>>({});
+  const [myVotes, setMyVotes] = useState<Record<string, boolean>>({});
   const { addFeedback } = useFeedback();
 
-  const toggleSuggestionVote = (suggestion: string) => {
-    setSuggestionVotes((prev) => {
-      const cur = prev[suggestion] ?? { count: 0, userVoted: false };
-      if (cur.userVoted) {
-        return {
-          ...prev,
-          [suggestion]: {
-            count: Math.max(0, cur.count - 1),
-            userVoted: false,
-          },
-        };
-      }
-      return {
-        ...prev,
-        [suggestion]: { count: cur.count + 1, userVoted: true },
+  useEffect(() => {
+    if (!suggestions.length || !voteSessionId) return;
+    const ac = new AbortController();
+    fetch(
+      `/api/feature-votes?sessionId=${encodeURIComponent(voteSessionId)}`,
+      { signal: ac.signal }
+    )
+      .then((r) => r.json())
+      .then(
+        (data: {
+          totals?: Record<string, number>;
+          myVotes?: Record<string, boolean>;
+        }) => {
+          setServerTotals(data.totals ?? {});
+          setMyVotes(data.myVotes ?? {});
+        }
+      )
+      .catch(() => {});
+    return () => ac.abort();
+  }, [suggestions, voteSessionId]);
+
+  const toggleSuggestionVote = async (suggestion: string) => {
+    try {
+      const res = await fetch('/api/feature-votes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-session-id': voteSessionId,
+        },
+        body: JSON.stringify({ key: suggestion }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        key: string;
+        total: number;
+        userVoted: boolean;
       };
-    });
+      setServerTotals((prev) => ({ ...prev, [data.key]: data.total }));
+      setMyVotes((prev) => ({ ...prev, [data.key]: data.userVoted }));
+    } catch {
+      /* network */
+    }
   };
 
   useEffect(() => {
@@ -168,7 +199,11 @@ export default function FloatingFeedbackWidget() {
                   )}
                   <ul className="max-h-52 overflow-y-auto py-1">
                     {suggestions.map((s, i) => {
-                      const v = suggestionVotes[s] ?? { count: 0, userVoted: false };
+                      const k = normalizeFeatureKey(s);
+                      const v = {
+                        count: serverTotals[k] ?? 0,
+                        userVoted: myVotes[k] ?? false,
+                      };
                       return (
                         <li
                           key={`${i}-${s.slice(0, 24)}`}

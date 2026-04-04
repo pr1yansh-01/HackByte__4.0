@@ -1,4 +1,6 @@
 {
   "/page": "app/page.js",
+  "/api/feature-votes/route": "app/api/feature-votes/route.js",
+  "/api/feature-suggestions/route": "app/api/feature-suggestions/route.js",
   "/dashboard/page": "app/dashboard/page.js"
 }

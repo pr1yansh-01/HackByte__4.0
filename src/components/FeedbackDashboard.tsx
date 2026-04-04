@@ -83,7 +83,7 @@ function DashboardReplyRow({
             <span className="font-medium text-gray-900">{r.authorName}</span>
             {r.role === 'admin' && (
               <span className="text-[10px] uppercase tracking-wide font-semibold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">
-                Team
+                Admin Reply
               </span>
             )}
             <span className="text-gray-400 text-xs">
@@ -124,7 +124,7 @@ function DashboardReplyRow({
 }
 
 export default function FeedbackDashboard() {
-  const { feedbacks, updateFeedbackStatus, deleteFeedback, voteFeedback } = useFeedback();
+  const { feedbacks, updateFeedbackStatus, deleteFeedback } = useFeedback();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleDelete = (id: string) => {
@@ -146,7 +146,6 @@ export default function FeedbackDashboard() {
           Feature Requests Dashboard
         </h1>
 
-        {/* STATS */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-6 border">
             <div>Total Requests</div>
@@ -265,62 +264,8 @@ export default function FeedbackDashboard() {
                           <option value="completed">Completed</option>
                         </select>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => voteFeedback(feedback.id, 'up')}
-                            disabled={feedback.votes === 1}
-                            className={`p-1 rounded transition-colors ${
-                              feedback.votes === 1
-                                ? 'text-green-600 cursor-default'
-                                : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
-                            }`}
-                            aria-label="Upvote"
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M5 15l7-7 7 7"
-                              />
-                            </svg>
-                          </button>
-                          <span className="text-sm font-semibold tabular-nums min-w-[1.25rem] text-center">
-                            {feedback.votes}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => voteFeedback(feedback.id, 'down')}
-                            disabled={feedback.votes === 0}
-                            className={`p-1 rounded transition-colors ${
-                              feedback.votes === 0
-                                ? 'text-gray-300 cursor-default'
-                                : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
-                            }`}
-                            aria-label="Downvote"
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </button>
-                        </div>
+                      <td className="px-6 py-4 text-sm font-semibold text-gray-900 tabular-nums">
+                        {feedback.votes}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 tabular-nums">
                         {feedback.replies.length}
