@@ -5,16 +5,12 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from 'react';
 import { clearReplyVote, removeMyReplyId } from '@/lib/replyClientStorage';
 import { normalizeFeatureKey } from '@/lib/featureVoteKey';
 import { assignPrioritiesByVoteRank } from '@/lib/priorityFromVotes';
-import {
-  clearFeedbackIdeaUpvote,
-  getFeedbackIdeaUpvoted,
-  setFeedbackIdeaUpvoted,
-} from '@/lib/featureVoteStorage';
 import {
   Feedback,
   FeedbackReply,
@@ -54,6 +50,8 @@ function adjustReplyVoteCounts(
 
 interface FeedbackContextType {
   feedbacks: Feedback[];
+  /** Re-fetch feature vote totals from the server and merge into feedback rows. */
+  refreshFeatureVotes: () => void;
   addFeedback: (
     feedback: Omit<
       Feedback,
@@ -74,7 +72,6 @@ interface FeedbackContextType {
   deleteReply: (feedbackId: string, replyId: string) => void;
   updateFeedbackStatus: (id: string, status: FeedbackStatus) => void;
   deleteFeedback: (id: string) => void;
-  voteFeedback: (id: string, type: 'up' | 'down') => void;
 }
 
 const FeedbackContext = createContext<FeedbackContextType | undefined>(undefined);
@@ -127,6 +124,24 @@ function seedFeedbacks(): Feedback[] {
 export function FeedbackProvider({ children }: { children: ReactNode }) {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>(seedFeedbacks);
 
+  const refreshFeatureVotes = useCallback(() => {
+    fetch('/api/feature-votes')
+      .then((r) => r.json())
+      .then((data: { totals?: Record<string, number> }) => {
+        const totals = data.totals ?? {};
+        setFeedbacks((prev) => {
+          const updated = prev.map((f) => {
+            const k = normalizeFeatureKey(f.title);
+            const serverVotes = totals[k] ?? 0;
+            if (serverVotes === f.votes) return f;
+            return { ...f, votes: serverVotes, updatedAt: new Date() };
+          });
+          return assignPrioritiesByVoteRank(updated);
+        });
+      })
+      .catch(() => {});
+  }, []);
+
   const addFeedback = (
     feedback: Omit<
       Feedback,
@@ -161,27 +176,10 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
 
   /** Merge server vote totals into feedback rows by title key and re-rank priority. */
   useEffect(() => {
-    const sync = () => {
-      fetch('/api/feature-votes')
-        .then((r) => r.json())
-        .then((data: { totals?: Record<string, number> }) => {
-          const totals = data.totals ?? {};
-          setFeedbacks((prev) => {
-            const updated = prev.map((f) => {
-              const k = normalizeFeatureKey(f.title);
-              const t = totals[k];
-              if (t === undefined) return f;
-              return { ...f, votes: t, updatedAt: new Date() };
-            });
-            return assignPrioritiesByVoteRank(updated);
-          });
-        })
-        .catch(() => {});
-    };
-    sync();
-    const id = window.setInterval(sync, 12_000);
+    refreshFeatureVotes();
+    const id = window.setInterval(refreshFeatureVotes, 8000);
     return () => clearInterval(id);
-  }, []);
+  }, [refreshFeatureVotes]);
 
   const addReply = (
     feedbackId: string,
@@ -271,7 +269,6 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   const deleteFeedback = (id: string) => {
     setFeedbacks((prev) => {
       if (typeof window !== 'undefined') {
-        clearFeedbackIdeaUpvote(id);
         const fb = prev.find((f) => f.id === id);
         fb?.replies.forEach((r) => {
           clearReplyVote(r.id);
@@ -283,55 +280,17 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  /** One upvote per browser session per request; down removes only that upvote. */
-  const voteFeedback = (id: string, type: 'up' | 'down') => {
-    if (typeof window === 'undefined') return;
-
-    if (type === 'up') {
-      if (getFeedbackIdeaUpvoted(id)) return;
-      setFeedbackIdeaUpvoted(id);
-      setFeedbacks((prev) =>
-        assignPrioritiesByVoteRank(
-          prev.map((item) => {
-            if (item.id !== id) return item;
-            return {
-              ...item,
-              votes: item.votes + 1,
-              updatedAt: new Date(),
-            };
-          })
-        )
-      );
-      return;
-    }
-
-    if (!getFeedbackIdeaUpvoted(id)) return;
-    clearFeedbackIdeaUpvote(id);
-    setFeedbacks((prev) =>
-      assignPrioritiesByVoteRank(
-        prev.map((item) => {
-          if (item.id !== id) return item;
-          return {
-            ...item,
-            votes: Math.max(0, item.votes - 1),
-            updatedAt: new Date(),
-          };
-        })
-      )
-    );
-  };
-
   return (
     <FeedbackContext.Provider
       value={{
         feedbacks,
+        refreshFeatureVotes,
         addFeedback,
         addReply,
         voteOnReply,
         deleteReply,
         updateFeedbackStatus,
         deleteFeedback,
-        voteFeedback,
       }}
     >
       {children}

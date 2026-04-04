@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useFeedback } from '@/context/FeedbackContext';
 import { FeedbackReply, FeedbackStatus } from '@/types/feedback';
 import ReplyVoteControls from '@/components/ReplyVoteControls';
@@ -83,7 +83,7 @@ function DashboardReplyRow({
             <span className="font-medium text-gray-900">{r.authorName}</span>
             {r.role === 'admin' && (
               <span className="text-[10px] uppercase tracking-wide font-semibold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">
-                Admin Reply
+                Team
               </span>
             )}
             <span className="text-gray-400 text-xs">
@@ -124,8 +124,21 @@ function DashboardReplyRow({
 }
 
 export default function FeedbackDashboard() {
-  const { feedbacks, updateFeedbackStatus, deleteFeedback } = useFeedback();
+  const { feedbacks, updateFeedbackStatus, deleteFeedback, refreshFeatureVotes } =
+    useFeedback();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    refreshFeatureVotes();
+  }, [refreshFeatureVotes]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshFeatureVotes();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [refreshFeatureVotes]);
 
   const handleDelete = (id: string) => {
     if (expandedId === id) setExpandedId(null);
@@ -264,10 +277,13 @@ export default function FeedbackDashboard() {
                       <td className="px-6 py-4 text-sm text-gray-600">
                         <span className="tabular-nums">{feedback.replies.length}</span> comments
                         <span className="text-gray-300 mx-1">·</span>
-                        <span className="tabular-nums font-medium text-gray-800">
+                        <span
+                          className="tabular-nums font-semibold text-indigo-700"
+                          title="Community upvotes (synced from vote store)"
+                        >
                           {feedback.votes}
                         </span>{' '}
-                        votes
+                        <span className="text-gray-500">upvotes</span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {feedback.createdAt.toLocaleDateString()}
@@ -298,13 +314,18 @@ export default function FeedbackDashboard() {
                       <tr className="bg-gray-50">
                         <td colSpan={7} className="px-6 py-5 border-t border-gray-100">
                           <div className="max-w-3xl">
-                            <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                              Comments & replies
-                              <span className="font-normal text-gray-500 ml-2">
-                                · {feedback.votes} community vote
+                            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                              <h4 className="text-sm font-semibold text-gray-900">
+                                Comments & replies
+                              </h4>
+                              <span
+                                className="text-sm font-medium tabular-nums text-indigo-800 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg"
+                                title="Total community upvotes for this feature title"
+                              >
+                                {feedback.votes} feature upvote
                                 {feedback.votes === 1 ? '' : 's'}
                               </span>
-                            </h4>
+                            </div>
                             {feedback.replies.length === 0 ? (
                               <p className="text-sm text-gray-500 mb-4">
                                 No comments yet.
@@ -340,3 +361,7 @@ export default function FeedbackDashboard() {
     </div>
   );
 }
+
+
+
+
