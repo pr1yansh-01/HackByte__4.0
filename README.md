@@ -293,36 +293,6 @@ export async function analyzeFeedback(feedback: string) {
 
 ---
 
-## 🎨 3D Visualization
-
-The dashboard uses **Three.js** via **React Three Fiber** to render an interactive 3D feature priority map:
-
-```tsx
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Stars } from "@react-three/drei";
-
-export default function Scene3D({ features }) {
-  return (
-    <Canvas camera={{ position: [0, 0, 10] }}>
-      <ambientLight intensity={0.5} />
-      <pointLight position={[10, 10, 10]} />
-      <Stars radius={100} depth={50} count={5000} factor={4} />
-      <OrbitControls enableZoom enableRotate />
-      {features.map((feature, i) => (
-        <FeatureSphere key={i} feature={feature} position={[i * 2, 0, 0]} />
-      ))}
-    </Canvas>
-  );
-}
-```
-
-Each feature is rendered as a **3D sphere** where:
-- 📏 **Size** = number of similar requests
-- 🎨 **Color** = category (Red=Bug, Blue=Feature, Green=UI, Yellow=Performance)
-- ✨ **Glow intensity** = AI-assigned priority score
-
-
----
 
 ## 📄 License
 
