@@ -321,28 +321,6 @@ Each feature is rendered as a **3D sphere** where:
 - 🎨 **Color** = category (Red=Bug, Blue=Feature, Green=UI, Yellow=Performance)
 - ✨ **Glow intensity** = AI-assigned priority score
 
----
-
-## 👥 Contributors
-
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/pr1yansh-01">
-        <img src="https://avatars.githubusercontent.com/pr1yansh-01" width="80px" style="border-radius:50%"/><br/>
-        <sub><b>Priyansh</b></sub>
-      </a><br/>
-      💻 Lead Developer
-    </td>
-    <td align="center">
-      <a href="https://github.com/adityaverma">
-        <img src="https://ui-avatars.com/api/?name=Aditya+Verma&background=6366f1&color=fff" width="80px" style="border-radius:50%"/><br/>
-        <sub><b>Aditya Verma</b></sub>
-      </a><br/>
-      💻 Contributor
-    </td>
-  </tr>
-</table>
 
 ---
 
