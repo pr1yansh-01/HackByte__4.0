@@ -143,31 +143,6 @@ FeatureHub solves all of these with AI analysis and immersive UX.
 
 ---
 
-## 📁 Project Structure
-
-```
-HackByte__4.0/
-├── 📁 public/                  # Static assets
-│   └── ...
-├── 📁 src/
-│   ├── 📁 app/                 # Next.js App Router
-│   │   ├── 📄 layout.tsx       # Root layout
-│   │   ├── 📄 page.tsx         # Home page
-│   │   ├── 📁 api/             # API routes
-│   │   │   └── 📁 feedback/    # Feedback endpoints
-│   │   └── 📁 dashboard/       # Analytics dashboard
-│   ├── 📁 components/          # Reusable React components
-│   │   ├── 📄 FeedbackForm.tsx # Feedback submission form
-│   │   ├── 📄 Scene3D.tsx      # Three.js 3D scene
-│   │   └── 📄 FeatureCard.tsx  # Feature display card
-│   └── 📁 lib/                 # Utilities & helpers
-│       └── 📄 gemini.ts        # Gemini AI integration
-├── 📄 next.config.js           # Next.js configuration
-├── 📄 tailwind.config.js       # Tailwind configuration
-├── 📄 tsconfig.json            # TypeScript configuration
-└── 📄 package.json             # Dependencies
-```
-
 ---
 
 ## 🚀 Getting Started
