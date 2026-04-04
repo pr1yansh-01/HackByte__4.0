@@ -13,7 +13,30 @@ export default function FloatingFeedbackWidget() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionLoading, setSuggestionLoading] = useState(false);
   const [suggestionSource, setSuggestionSource] = useState<string>('');
+  /** Per-suggestion title string: vote count and whether this browser session toggled it on. */
+  const [suggestionVotes, setSuggestionVotes] = useState<
+    Record<string, { count: number; userVoted: boolean }>
+  >({});
   const { addFeedback } = useFeedback();
+
+  const toggleSuggestionVote = (suggestion: string) => {
+    setSuggestionVotes((prev) => {
+      const cur = prev[suggestion] ?? { count: 0, userVoted: false };
+      if (cur.userVoted) {
+        return {
+          ...prev,
+          [suggestion]: {
+            count: Math.max(0, cur.count - 1),
+            userVoted: false,
+          },
+        };
+      }
+      return {
+        ...prev,
+        [suggestion]: { count: cur.count + 1, userVoted: true },
+      };
+    });
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -144,18 +167,60 @@ export default function FloatingFeedbackWidget() {
                     </div>
                   )}
                   <ul className="max-h-52 overflow-y-auto py-1">
-                    {suggestions.map((s, i) => (
-                      <li key={`${i}-${s.slice(0, 24)}`}>
-                        <button
-                          type="button"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => pickSuggestion(s)}
-                          className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-indigo-50 hover:text-indigo-900 transition-colors"
+                    {suggestions.map((s, i) => {
+                      const v = suggestionVotes[s] ?? { count: 0, userVoted: false };
+                      return (
+                        <li
+                          key={`${i}-${s.slice(0, 24)}`}
+                          className="flex items-stretch border-b border-gray-100 last:border-0"
                         >
-                          {s}
-                        </button>
-                      </li>
-                    ))}
+                          <div className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 shrink-0 border-r border-gray-100 bg-gray-50/80">
+                            <button
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleSuggestionVote(s);
+                              }}
+                              aria-pressed={v.userVoted}
+                              aria-label={
+                                v.userVoted ? 'Remove your vote' : 'Vote for this suggestion'
+                              }
+                              className={`rounded p-0.5 transition-colors ${
+                                v.userVoted
+                                  ? 'text-indigo-600 bg-indigo-100'
+                                  : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'
+                              }`}
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 15l7-7 7 7"
+                                />
+                              </svg>
+                            </button>
+                            <span className="text-[11px] font-semibold tabular-nums text-gray-700 min-w-[1rem] text-center">
+                              {v.count}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => pickSuggestion(s)}
+                            className="flex-1 min-w-0 text-left px-3 py-2 text-sm text-gray-800 hover:bg-indigo-50 hover:text-indigo-900 transition-colors"
+                          >
+                            {s}
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                   {!suggestionLoading && suggestions.length > 0 && (
                     <div className="px-3 py-1.5 border-t border-gray-100 text-[10px] text-gray-400">
