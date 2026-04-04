@@ -124,7 +124,7 @@ function DashboardReplyRow({
 }
 
 export default function FeedbackDashboard() {
-  const { feedbacks, updateFeedbackStatus, deleteFeedback, voteFeedback } = useFeedback();
+  const { feedbacks, updateFeedbackStatus, deleteFeedback } = useFeedback();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleDelete = (id: string) => {
@@ -181,10 +181,7 @@ export default function FeedbackDashboard() {
                     Status
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Votes
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                    Comments
+                    Comments / votes
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
                     Created
@@ -264,41 +261,13 @@ export default function FeedbackDashboard() {
                           <option value="completed">Completed</option>
                         </select>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            disabled={feedback.votes === 1}
-                            onClick={() => voteFeedback(feedback.id, 'up')}
-                            className={`p-1 rounded text-sm font-medium transition-colors ${
-                              feedback.votes === 1
-                                ? 'text-green-600 cursor-default'
-                                : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
-                            }`}
-                            aria-label="Upvote"
-                          >
-                            ▲
-                          </button>
-                          <span className="font-semibold text-sm text-gray-700 min-w-[1.5rem] text-center tabular-nums">
-                            {feedback.votes}
-                          </span>
-                          <button
-                            type="button"
-                            disabled={feedback.votes === 0}
-                            onClick={() => voteFeedback(feedback.id, 'down')}
-                            className={`p-1 rounded text-sm font-medium transition-colors ${
-                              feedback.votes === 0
-                                ? 'text-gray-300 cursor-not-allowed'
-                                : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
-                            }`}
-                            aria-label="Downvote"
-                          >
-                            ▼
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 tabular-nums">
-                        {feedback.replies.length}
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        <span className="tabular-nums">{feedback.replies.length}</span> comments
+                        <span className="text-gray-300 mx-1">·</span>
+                        <span className="tabular-nums font-medium text-gray-800">
+                          {feedback.votes}
+                        </span>{' '}
+                        votes
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {feedback.createdAt.toLocaleDateString()}
@@ -327,10 +296,14 @@ export default function FeedbackDashboard() {
                     </tr>
                     {expandedId === feedback.id && (
                       <tr className="bg-gray-50">
-                        <td colSpan={8} className="px-6 py-5 border-t border-gray-100">
+                        <td colSpan={7} className="px-6 py-5 border-t border-gray-100">
                           <div className="max-w-3xl">
                             <h4 className="text-sm font-semibold text-gray-900 mb-3">
                               Comments & replies
+                              <span className="font-normal text-gray-500 ml-2">
+                                · {feedback.votes} community vote
+                                {feedback.votes === 1 ? '' : 's'}
+                              </span>
                             </h4>
                             {feedback.replies.length === 0 ? (
                               <p className="text-sm text-gray-500 mb-4">

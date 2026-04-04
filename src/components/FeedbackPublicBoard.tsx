@@ -5,6 +5,7 @@ import { useFeedback } from '@/context/FeedbackContext';
 import { Feedback, FeedbackReply, FeedbackStatus } from '@/types/feedback';
 import { addMyReplyId, getMyReplyIds } from '@/lib/replyClientStorage';
 import ReplyVoteControls from '@/components/ReplyVoteControls';
+import FeatureIdeaVoteControls from '@/components/FeatureIdeaVoteControls';
 
 const statusLabel: Record<FeedbackStatus, string> = {
   pending: 'Pending',
@@ -34,7 +35,7 @@ function UserReplyForm({ feedbackId }: { feedbackId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="mt-4 space-y-3 border-t border-gray-100 pt-4">
-      <div className="text-sm font-medium text-gray-700">Add a comment</div>
+      <div className="text-sm font-medium text-gray-900">Add a comment</div>
       <input
         type="text"
         value={name}
@@ -86,17 +87,17 @@ function ReplyListItem({
       <div className="flex gap-3 justify-between items-start">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className="font-medium text-gray-900">{r.authorName}</span>
+            <span className="font-medium text-gray-950">{r.authorName}</span>
             {r.role === 'admin' && (
               <span className="text-[10px] uppercase tracking-wide font-semibold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">
                 Team
               </span>
             )}
-            <span className="text-gray-400 text-xs">
+            <span className="text-gray-600 text-xs">
               {r.createdAt.toLocaleString()}
             </span>
           </div>
-          <p className="text-gray-700 whitespace-pre-wrap">{r.body}</p>
+          <p className="text-gray-900 whitespace-pre-wrap">{r.body}</p>
           {r.role === 'user' && (
             <ReplyVoteControls feedbackId={feedbackId} reply={r} />
           )}
@@ -132,7 +133,7 @@ function ReplyListItem({
 function ReplyList({ feedback }: { feedback: Feedback }) {
   if (feedback.replies.length === 0) {
     return (
-      <p className="text-sm text-gray-400 mt-3">No comments yet. Be the first to reply.</p>
+      <p className="text-sm text-gray-600 mt-3">No comments yet. Be the first to reply.</p>
     );
   }
 
@@ -150,10 +151,10 @@ export default function FeedbackPublicBoard() {
 
   return (
     <section className="mt-24 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">
+      <h2 className="text-2xl font-bold text-gray-950 text-center mb-2">
         Community feedback
       </h2>
-      <p className="text-gray-600 text-center mb-10 max-w-xl mx-auto">
+      <p className="text-gray-800 text-center mb-10 max-w-xl mx-auto">
         See what others are asking for and join the conversation with a comment.
       </p>
 
@@ -164,20 +165,28 @@ export default function FeedbackPublicBoard() {
             className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 text-left"
           >
             <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
-              <h3 className="text-lg font-semibold text-gray-900">{fb.title}</h3>
+              <h3 className="text-lg font-semibold text-gray-950">{fb.title}</h3>
               <span
                 className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${statusStyle[fb.status]}`}
               >
                 {statusLabel[fb.status]}
               </span>
             </div>
-            <p className="text-gray-600 text-sm mb-1">{fb.description}</p>
-            <p className="text-xs text-gray-400">
-              Submitted {fb.createdAt.toLocaleDateString()} · {fb.replies.length}{' '}
+            <p className="text-gray-800 text-sm mb-1">{fb.description}</p>
+            <p className="text-xs text-gray-600">
+              Submitted {fb.createdAt.toLocaleDateString()} · {fb.votes}{' '}
+              {fb.votes === 1 ? 'vote' : 'votes'} · {fb.replies.length}{' '}
               {fb.replies.length === 1 ? 'comment' : 'comments'}
             </p>
 
-            <ReplyList feedback={fb} />
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <FeatureIdeaVoteControls feedbackId={fb.id} votes={fb.votes} />
+            </div>
+
+            <div className="mt-4">
+              <h4 className="text-sm font-semibold text-gray-950 mb-1">Comments</h4>
+              <ReplyList feedback={fb} />
+            </div>
             <UserReplyForm feedbackId={fb.id} />
           </article>
         ))}

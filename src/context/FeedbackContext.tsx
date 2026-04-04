@@ -3,6 +3,11 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { clearReplyVote, removeMyReplyId } from '@/lib/replyClientStorage';
 import {
+  clearFeedbackIdeaUpvote,
+  getFeedbackIdeaUpvoted,
+  setFeedbackIdeaUpvoted,
+} from '@/lib/featureVoteStorage';
+import {
   Feedback,
   FeedbackReply,
   FeedbackReplyRole,
@@ -42,7 +47,10 @@ function adjustReplyVoteCounts(
 interface FeedbackContextType {
   feedbacks: Feedback[];
   addFeedback: (
-    feedback: Omit<Feedback, 'id' | 'createdAt' | 'updatedAt' | 'similarCount' | 'replies'>
+    feedback: Omit<
+      Feedback,
+      'id' | 'createdAt' | 'updatedAt' | 'similarCount' | 'replies' | 'votes' | 'userVote'
+    >
   ) => void;
   addReply: (
     feedbackId: string,
@@ -107,7 +115,10 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   ]);
 
   const addFeedback = (
-    feedback: Omit<Feedback, 'id' | 'createdAt' | 'updatedAt' | 'similarCount' | 'replies'>
+    feedback: Omit<
+      Feedback,
+      'id' | 'createdAt' | 'updatedAt' | 'similarCount' | 'replies' | 'votes' | 'userVote'
+    >
   ) => {
     const newFeedback: Feedback = {
       ...feedback,
@@ -210,6 +221,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   const deleteFeedback = (id: string) => {
     setFeedbacks((prev) => {
       if (typeof window !== 'undefined') {
+        clearFeedbackIdeaUpvote(id);
         const fb = prev.find((f) => f.id === id);
         fb?.replies.forEach((r) => {
           clearReplyVote(r.id);
@@ -220,35 +232,39 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  
+  /** One upvote per browser session per request; down removes only that upvote. */
   const voteFeedback = (id: string, type: 'up' | 'down') => {
-  setFeedbacks((prev) =>
-    prev.map((item) => {
-      if (item.id !== id) return item;
+    if (typeof window === 'undefined') return;
 
-      let newVotes = item.votes;
+    if (type === 'up') {
+      if (getFeedbackIdeaUpvoted(id)) return;
+      setFeedbackIdeaUpvoted(id);
+      setFeedbacks((prev) =>
+        prev.map((item) => {
+          if (item.id !== id) return item;
+          return {
+            ...item,
+            votes: item.votes + 1,
+            updatedAt: new Date(),
+          };
+        })
+      );
+      return;
+    }
 
-      if (type === 'up') {
-      
-        if (newVotes === 0) {
-          newVotes = 1;
-        }
-      }
-
-      if (type === 'down') {
-        
-        if (newVotes === 1) {
-          newVotes = 0;
-        }
-      }
-
-      return {
-        ...item,
-        votes: newVotes,
-      };
-    })
-  );
-};
+    if (!getFeedbackIdeaUpvoted(id)) return;
+    clearFeedbackIdeaUpvote(id);
+    setFeedbacks((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        return {
+          ...item,
+          votes: Math.max(0, item.votes - 1),
+          updatedAt: new Date(),
+        };
+      })
+    );
+  };
 
   return (
     <FeedbackContext.Provider

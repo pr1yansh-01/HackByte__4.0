@@ -2,8 +2,35 @@
 
 import { useEffect, useState } from 'react';
 import { useFeedback } from '@/context/FeedbackContext';
-import { FeedbackStatus } from '@/types/feedback';
- 
+import { Feedback } from '@/types/feedback';
+import FeatureIdeaVoteControls from '@/components/FeatureIdeaVoteControls';
+import { getFeedbackIdeaUpvoted } from '@/lib/featureVoteStorage';
+
+function normalizeTitle(t: string) {
+  return t.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function findFeedbackByTitle(feedbacks: Feedback[], raw: string): Feedback | null {
+  const n = normalizeTitle(raw);
+  if (!n) return null;
+  return feedbacks.find((f) => normalizeTitle(f.title) === n) ?? null;
+}
+
+/** Match API suggestion text to a board item so every suggestion row can offer voting when possible. */
+function findSuggestionMatch(feedbacks: Feedback[], suggestion: string): Feedback | null {
+  const n = normalizeTitle(suggestion);
+  if (!n) return null;
+  const exact = feedbacks.find((f) => normalizeTitle(f.title) === n);
+  if (exact) return exact;
+  const candidates = feedbacks.filter((f) => {
+    const t = normalizeTitle(f.title);
+    return t.includes(n) || (n.length >= 4 && n.includes(t));
+  });
+  if (candidates.length === 0) return null;
+  return candidates.sort(
+    (a, b) => normalizeTitle(b.title).length - normalizeTitle(a.title).length
+  )[0];
+}
 
 export default function FloatingFeedbackWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,13 +39,14 @@ export default function FloatingFeedbackWidget() {
   const [description, setDescription] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionLoading, setSuggestionLoading] = useState(false);
-  const [suggestionSource, setSuggestionSource] = useState<string>('');
-  const { addFeedback } = useFeedback();
+  const [votedExistingId, setVotedExistingId] = useState<string | null>(null);
+  const { feedbacks, addFeedback, voteFeedback } = useFeedback();
 
   useEffect(() => {
     if (!isOpen) {
       setSuggestions([]);
       setSuggestionLoading(false);
+      setVotedExistingId(null);
       return;
     }
 
@@ -44,11 +72,9 @@ export default function FloatingFeedbackWidget() {
           source?: string;
         };
         setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
-        setSuggestionSource(data.source ?? '');
       } catch {
         if (!ac.signal.aborted) {
           setSuggestions([]);
-          setSuggestionSource('');
         }
       } finally {
         if (!ac.signal.aborted) setSuggestionLoading(false);
@@ -61,31 +87,73 @@ export default function FloatingFeedbackWidget() {
     };
   }, [title, isOpen]);
 
+  useEffect(() => {
+    if (!votedExistingId) return;
+    const fb = feedbacks.find((f) => f.id === votedExistingId);
+    if (!fb || normalizeTitle(fb.title) !== normalizeTitle(title)) {
+      setVotedExistingId(null);
+    }
+  }, [title, votedExistingId, feedbacks]);
+
   const showSuggestionPanel =
     isOpen && title.trim().length >= 2 && (suggestionLoading || suggestions.length > 0);
 
+  const titleMatch = findFeedbackByTitle(feedbacks, title);
+  const submitAsVote = Boolean(titleMatch || votedExistingId);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !description.trim()) return;
 
-   addFeedback({
-  title,
-  description,
-  priority: 'medium',
-  status: 'pending',
-  votes: 0,              // 👈 ADD
-  userVote: undefined,   // 👈 ADD
-});
+    if (submitAsVote) {
+      const target =
+        titleMatch ??
+        (votedExistingId
+          ? feedbacks.find((f) => f.id === votedExistingId) ?? null
+          : null);
+      if (!target) return;
+
+      if (!votedExistingId && titleMatch && !getFeedbackIdeaUpvoted(target.id)) {
+        voteFeedback(target.id, 'up');
+      }
+
+      setTitle('');
+      setDescription('');
+      setEmail('');
+      setSuggestions([]);
+      setVotedExistingId(null);
+      setIsOpen(false);
+      return;
+    }
+
+    if (!title.trim() || !description.trim()) return;
+    if (!email.trim()) return;
+
+    addFeedback({
+      title: title.trim(),
+      description: description.trim(),
+      priority: 'medium',
+      status: 'pending',
+    });
 
     setTitle('');
     setDescription('');
+    setEmail('');
     setSuggestions([]);
+    setVotedExistingId(null);
     setIsOpen(false);
   };
 
   const pickSuggestion = (s: string) => {
     setTitle(s);
+    const fb = findSuggestionMatch(feedbacks, s);
+    if (fb) setDescription(fb.description);
     setSuggestions([]);
+  };
+
+  const handleSuggestionUpvoted = (fb: Feedback) => {
+    setVotedExistingId(fb.id);
+    setTitle(fb.title);
+    setDescription(fb.description);
   };
 
   return (
@@ -123,9 +191,6 @@ export default function FloatingFeedbackWidget() {
                 <label className="block text-sm font-medium text-gray-700">
                   Feature Title
                 </label>
-                {/* <span className="text-[10px] font-medium uppercase tracking-wide text-indigo-600">
-                  AI suggestions
-                </span> */}
               </div>
               <input
                 type="text"
@@ -146,26 +211,46 @@ export default function FloatingFeedbackWidget() {
                     </div>
                   )}
                   <ul className="max-h-52 overflow-y-auto py-1">
-                    {suggestions.map((s, i) => (
-                      <li key={`${i}-${s.slice(0, 24)}`}>
-                        <button
-                          type="button"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => pickSuggestion(s)}
-                          className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-indigo-50 hover:text-indigo-900 transition-colors"
+                    {suggestions.map((s, i) => {
+                      const fb = findSuggestionMatch(feedbacks, s);
+                      return (
+                        <li
+                          key={`${i}-${s.slice(0, 24)}`}
+                          className="flex items-stretch border-b border-gray-50 last:border-0"
                         >
-                          {s}
-                        </button>
-                      </li>
-                    ))}
+                          {fb ? (
+                            <FeatureIdeaVoteControls
+                              feedbackId={fb.id}
+                              votes={fb.votes}
+                              compact
+                              onUpvoted={() => handleSuggestionUpvoted(fb)}
+                            />
+                          ) : (
+                            <div
+                              className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 bg-gray-50/80 border-r border-gray-100 shrink-0 w-[3.25rem]"
+                              title="Not on the board yet — pick the title to submit a new idea"
+                            >
+                              <span className="text-[10px] text-gray-300 leading-none px-1.5 py-0.5">
+                                ▲
+                              </span>
+                              <span className="text-xs font-semibold text-gray-400 tabular-nums">0</span>
+                              <span className="text-[10px] text-gray-300 leading-none px-1.5 py-0.5">
+                                ▼
+                              </span>
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => pickSuggestion(s)}
+                            className="flex-1 text-left px-3 py-2 text-sm text-gray-800 hover:bg-indigo-50 hover:text-indigo-900 transition-colors min-w-0"
+                          >
+                            {s}
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
-                  {!suggestionLoading && suggestions.length > 0 && (
-                    <div className="px-3 py-1.5 border-t border-gray-100 text-[10px] text-gray-400">
-                      {/* {suggestionSource === 'gemini'
-                        ? 'Powered by Google Gemini'
-                        : 'Keyword suggestions (add GEMINI_API_KEY for AI)'} */}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -177,8 +262,13 @@ export default function FloatingFeedbackWidget() {
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe the feature you'd like to see..."
+                placeholder={
+                  submitAsVote
+                    ? 'Optional — voting on an existing request'
+                    : "Describe the feature you'd like to see..."
+                }
                 rows={3}
+                required={!submitAsVote}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
               />
             </div>
@@ -192,8 +282,8 @@ export default function FloatingFeedbackWidget() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Please enter your email ID"
                 rows={1}
+                required={!submitAsVote}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
-                required
               />
             </div>
 
@@ -201,7 +291,7 @@ export default function FloatingFeedbackWidget() {
               type="submit"
               className="w-full bg-primary hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
             >
-              Submit Request
+              {submitAsVote ? 'Submit vote' : 'Submit Request'}
             </button>
           </form>
         </div>
