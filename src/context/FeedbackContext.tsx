@@ -58,6 +58,7 @@ interface FeedbackContextType {
   deleteReply: (feedbackId: string, replyId: string) => void;
   updateFeedbackStatus: (id: string, status: FeedbackStatus) => void;
   deleteFeedback: (id: string) => void;
+  voteFeedback: (id: string, type: 'up' | 'down') => void; 
 }
 
 const FeedbackContext = createContext<FeedbackContextType | undefined>(undefined);
@@ -74,6 +75,8 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       createdAt: new Date('2024-01-15'),
       updatedAt: new Date('2024-01-20'),
       similarCount: 0,
+      votes: 0,              
+      userVote: undefined,     
     },
     {
       id: '2',
@@ -85,6 +88,8 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       createdAt: new Date('2024-01-18'),
       updatedAt: new Date('2024-01-22'),
       similarCount: 0,
+      votes: 0,                
+      userVote: undefined,     
     },
     {
       id: '3',
@@ -96,6 +101,8 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       createdAt: new Date('2024-01-20'),
       updatedAt: new Date('2024-01-20'),
       similarCount: 0,
+      votes: 0,                
+      userVote: undefined,     
     },
   ]);
 
@@ -109,6 +116,8 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       replies: [],
       createdAt: new Date(),
       updatedAt: new Date(),
+      votes: 0,              
+      userVote: undefined,   
     };
     setFeedbacks((prev) => [newFeedback, ...prev]);
   };
@@ -211,16 +220,52 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  
+  const voteFeedback = (id: string, type: 'up' | 'down') => {
+  setFeedbacks((prev) =>
+    prev.map((item) => {
+      if (item.id !== id) return item;
+
+      let newVotes = item.votes;
+
+      if (type === 'up') {
+      
+        if (newVotes === 0) {
+          newVotes = 1;
+        }
+      }
+
+      if (type === 'down') {
+        
+        if (newVotes === 1) {
+          newVotes = 0;
+        }
+      }
+
+      return {
+        ...item,
+        votes: newVotes,
+      };
+    })
+  );
+};
+
   return (
     <FeedbackContext.Provider
       value={{
         feedbacks,
         addFeedback,
+<<<<<<< HEAD
         addReply,
         voteOnReply,
         deleteReply,
         updateFeedbackStatus,
         deleteFeedback,
+=======
+        updateFeedbackStatus,
+        deleteFeedback,
+        voteFeedback, 
+>>>>>>> b4101b8 (added voting feature for ideas to be shown in dashboard)
       }}
     >
       {children}

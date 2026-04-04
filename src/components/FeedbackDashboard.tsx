@@ -5,6 +5,7 @@ import { useFeedback } from '@/context/FeedbackContext';
 import { FeedbackReply, FeedbackStatus } from '@/types/feedback';
 import ReplyVoteControls from '@/components/ReplyVoteControls';
 
+<<<<<<< HEAD
 const statusConfig: Record<FeedbackStatus, { label: string; color: string; bgColor: string }> = {
   pending: {
     label: 'Pending',
@@ -130,6 +131,36 @@ export default function FeedbackDashboard() {
   const handleDelete = (id: string) => {
     if (expandedId === id) setExpandedId(null);
     deleteFeedback(id);
+=======
+export default function FeedbackDashboard() {
+  const { feedbacks, updateFeedbackStatus, deleteFeedback, voteFeedback } = useFeedback();
+
+  const statusConfig: Record<
+    FeedbackStatus,
+    { label: string; color: string; bgColor: string }
+  > = {
+    pending: {
+      label: 'Pending',
+      color: 'text-yellow-700',
+      bgColor: 'bg-yellow-100',
+    },
+    in_progress: {
+      label: 'In Progress',
+      color: 'text-blue-700',
+      bgColor: 'bg-blue-100',
+    },
+    completed: {
+      label: 'Completed',
+      color: 'text-green-700',
+      bgColor: 'bg-green-100',
+    },
+  };
+
+  const priorityConfig: Record<string, { label: string; color: string }> = {
+    low: { label: 'Low', color: 'text-gray-600 bg-gray-100' },
+    medium: { label: 'Medium', color: 'text-orange-600 bg-orange-100' },
+    high: { label: 'High', color: 'text-red-600 bg-red-100' },
+>>>>>>> b4101b8 (added voting feature for ideas to be shown in dashboard)
   };
 
   const stats = {
@@ -146,25 +177,27 @@ export default function FeedbackDashboard() {
           Feature Requests Dashboard
         </h1>
 
+        {/* STATS */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="text-sm text-gray-500 mb-1">Total Requests</div>
-            <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
+          <div className="bg-white rounded-xl shadow-sm p-6 border">
+            <div>Total Requests</div>
+            <div className="text-2xl font-bold">{stats.total}</div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="text-sm text-yellow-500 mb-1">Pending</div>
-            <div className="text-3xl font-bold text-yellow-600">{stats.pending}</div>
+          <div className="bg-white rounded-xl shadow-sm p-6 border">
+            <div>Pending</div>
+            <div className="text-yellow-600 font-bold">{stats.pending}</div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="text-sm text-blue-500 mb-1">In Progress</div>
-            <div className="text-3xl font-bold text-blue-600">{stats.in_progress}</div>
+          <div className="bg-white rounded-xl shadow-sm p-6 border">
+            <div>In Progress</div>
+            <div className="text-blue-600 font-bold">{stats.in_progress}</div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="text-sm text-green-500 mb-1">Completed</div>
-            <div className="text-3xl font-bold text-green-600">{stats.completed}</div>
+          <div className="bg-white rounded-xl shadow-sm p-6 border">
+            <div>Completed</div>
+            <div className="text-green-600 font-bold">{stats.completed}</div>
           </div>
         </div>
 
+<<<<<<< HEAD
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -327,6 +360,87 @@ export default function FeedbackDashboard() {
             </table>
           </div>
         </div>
+=======
+        {/* TABLE */}
+        <table className="w-full bg-white border rounded-lg">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Votes</th> {/* ✅ NEW */}
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {feedbacks.map((feedback) => (
+              <tr key={feedback.id}>
+                <td>
+                  <b>{feedback.title}</b>
+                  <div>{feedback.description}</div>
+                </td>
+
+                <td>
+                  {priorityConfig[feedback.priority].label}
+                </td>
+
+                <td>
+                  <select
+                    value={feedback.status}
+                    onChange={(e) =>
+                      updateFeedbackStatus(
+                        feedback.id,
+                        e.target.value as FeedbackStatus
+                      )
+                    }
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </td>
+
+                {/* ✅ VOTING COLUMN */}
+                <td>
+                 <div className="flex items-center gap-2">
+  {/* UPVOTE */}
+  <button
+    disabled={feedback.votes === 1}
+    onClick={() => voteFeedback(feedback.id, 'up')}
+    className={`p-1 rounded ${
+      feedback.votes === 1 ? 'text-green-600' : 'text-gray-400'
+    } hover:text-green-600`}
+  >
+    ▲
+  </button>
+
+  {/* COUNT */}
+  <span className="font-semibold">{feedback.votes}</span>
+
+  {/* DOWNVOTE */}
+  <button
+    disabled={feedback.votes === 0}
+    onClick={() => voteFeedback(feedback.id, 'down')}
+    className={`p-1 rounded ${
+      feedback.votes === 0 ? 'text-gray-400' : 'text-red-600'
+    } hover:text-red-600`}
+  >
+    ▼
+  </button>
+</div>
+                </td>
+
+                <td>
+                  <button onClick={() => deleteFeedback(feedback.id)}>
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+>>>>>>> b4101b8 (added voting feature for ideas to be shown in dashboard)
       </div>
     </div>
   );

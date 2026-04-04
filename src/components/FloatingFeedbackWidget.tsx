@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useFeedback } from '@/context/FeedbackContext';
 import { FeedbackStatus } from '@/types/feedback';
+ 
 
 export default function FloatingFeedbackWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -67,12 +68,14 @@ export default function FloatingFeedbackWidget() {
     e.preventDefault();
     if (!title.trim() || !description.trim()) return;
 
-    addFeedback({
-      title,
-      description,
-      priority: 'medium',
-      status: 'pending' as FeedbackStatus,
-    });
+   addFeedback({
+  title,
+  description,
+  priority: 'medium',
+  status: 'pending',
+  votes: 0,              // 👈 ADD
+  userVote: undefined,   // 👈 ADD
+});
 
     setTitle('');
     setDescription('');
