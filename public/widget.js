@@ -1,18 +1,12 @@
 (function () {
-  // --- CONFIGURATION ---
-  // If the host site passes a data-api-url in the script tag, we use it, otherwise fallback to local/prod
   const scriptTag = document.currentScript;
   let apiUrl = scriptTag ? scriptTag.getAttribute('data-api-url') : null;
-  
+
   if (!apiUrl) {
-    // Attempt to guess the script's origin or default to localhost for development
     const scriptSrc = scriptTag ? scriptTag.src : '';
     const url = new URL(scriptSrc || 'http://localhost:3000');
     apiUrl = `${url.origin}/api/feedback`;
   }
-
-  // --- STYLES ---
-  // Injecting styles dynamically into the host page
   const styles = `
     #hbyte-feedback-container {
       position: fixed;
@@ -171,7 +165,6 @@
     }
   `;
 
-  // --- HTML TEMPLATE ---
   const htmlTemplate = `
     <div id="hbyte-feedback-modal">
       <div class="hbyte-modal-header">
@@ -215,20 +208,16 @@
     </button>
   `;
 
-  // --- INITIALIZATION ---
   function initWidget() {
-    // 1. Inject Styles
     const styleElement = document.createElement('style');
     styleElement.innerHTML = styles;
     document.head.appendChild(styleElement);
 
-    // 2. Inject HTML
     const container = document.createElement('div');
     container.id = 'hbyte-feedback-container';
     container.innerHTML = htmlTemplate;
     document.body.appendChild(container);
 
-    // 3. Attach Event Listeners
     attachEvents();
   }
 
@@ -237,7 +226,7 @@
     const modal = document.getElementById('hbyte-feedback-modal');
     const closeBtn = document.getElementById('hbyte-close-btn');
     const form = document.getElementById('hbyte-feedback-form');
-    
+
     const iconChat = document.getElementById('hbyte-icon-chat');
     const iconClose = document.getElementById('hbyte-icon-close');
     const buttonText = document.getElementById('hbyte-button-text');
@@ -253,31 +242,29 @@
         iconChat.style.display = 'none';
         iconClose.style.display = 'block';
         buttonText.style.display = 'none';
-        
-        // Reset state
+
         statusMsg.className = 'hbyte-status-msg';
         statusMsg.textContent = '';
       } else {
         modal.classList.remove('hbyte-show');
         setTimeout(() => {
           if (!isOpen) modal.style.display = 'none';
-        }, 300); // Wait for transition
-        
+        }, 300);
+
         iconChat.style.display = 'block';
         iconClose.style.display = 'none';
         buttonText.style.display = 'inline';
       }
-      
+
       if (isOpen) modal.style.display = 'block';
     }
 
     button.addEventListener('click', toggleModal);
     closeBtn.addEventListener('click', toggleModal);
 
-    // Handle form submission
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      
+
       const title = document.getElementById('hbyte-title').value;
       const description = document.getElementById('hbyte-description').value;
       const email = document.getElementById('hbyte-email').value;
@@ -300,10 +287,9 @@
           statusMsg.textContent = 'Thank you for your feedback!';
           statusMsg.classList.add('success');
           form.reset();
-          
-          // Auto close after 2 seconds
+
           setTimeout(() => {
-             toggleModal();
+            toggleModal();
           }, 2000);
         } else {
           statusMsg.textContent = 'Something went wrong. Please try again.';
@@ -320,7 +306,6 @@
     });
   }
 
-  // Run initialization
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initWidget);
   } else {

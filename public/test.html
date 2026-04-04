@@ -1,14 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Widget Test Page</title>
     <style>
-        body { font-family: sans-serif; padding: 2rem; }
-        .hero { background: #f3f4f6; padding: 3rem; border-radius: 0.5rem; text-align: center; }
+        body {
+            font-family: sans-serif;
+            padding: 2rem;
+        }
+
+        .hero {
+            background: #f3f4f6;
+            padding: 3rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
     </style>
 </head>
+
 <body>
     <div class="hero">
         <h1>External Website Example</h1>
@@ -16,7 +27,7 @@
         <p>You should see the floating blue button in the bottom right corner.</p>
     </div>
 
-    <!-- Include our widget plugin from the local next.js public folder -->
     <script src="/widget.js" data-api-url="http://localhost:3000/api/feedback"></script>
 </body>
+
 </html>
