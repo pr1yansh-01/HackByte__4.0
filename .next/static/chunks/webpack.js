@@ -192,11 +192,7 @@
 /******/ 	
 /******/ 	/* webpack/runtime/getFullHash */
 /******/ 	!function() {
-<<<<<<< HEAD
-/******/ 		__webpack_require__.h = function() { return "ef603c8c666c752b"; }
-=======
-/******/ 		__webpack_require__.h = function() { return "4f227fa7f9b05418"; }
->>>>>>> 9ab6d5d ( fixed a bug in  rendering of cards at home page)
+/******/ 		__webpack_require__.h = function() { return "819516a26eff1d3f"; }
 /******/ 	}();
 /******/ 	
 /******/ 	/* webpack/runtime/global */

@@ -255,17 +255,12 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       value={{
         feedbacks,
         addFeedback,
-<<<<<<< HEAD
         addReply,
         voteOnReply,
         deleteReply,
         updateFeedbackStatus,
         deleteFeedback,
-=======
-        updateFeedbackStatus,
-        deleteFeedback,
-        voteFeedback, 
->>>>>>> b4101b8 (added voting feature for ideas to be shown in dashboard)
+        voteFeedback,
       }}
     >
       {children}
