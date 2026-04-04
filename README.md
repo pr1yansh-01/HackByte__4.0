@@ -143,8 +143,6 @@ FeatureHub solves all of these with AI analysis and immersive UX.
 
 ---
 
----
-
 ## 🚀 Getting Started
 
 ### Prerequisites
