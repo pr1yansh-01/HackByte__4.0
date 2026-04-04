@@ -89,7 +89,7 @@ function ReplyListItem({
             <span className="font-medium text-gray-900">{r.authorName}</span>
             {r.role === 'admin' && (
               <span className="text-[10px] uppercase tracking-wide font-semibold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">
-                Team
+                Admin Reply
               </span>
             )}
             <span className="text-gray-400 text-xs">
