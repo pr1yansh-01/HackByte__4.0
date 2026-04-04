@@ -139,7 +139,7 @@ export default function FloatingFeedbackWidget() {
                   {suggestionLoading && suggestions.length === 0 && (
                     <div className="px-3 py-2.5 text-xs text-gray-500 flex items-center gap-2">
                       <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-                      Generating suggestions…
+                      Searching for suggestions…
                     </div>
                   )}
                   <ul className="max-h-52 overflow-y-auto py-1">
