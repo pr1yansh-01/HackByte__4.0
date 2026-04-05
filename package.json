@@ -14,6 +14,8 @@
     "@react-three/fiber": "^8.15.16",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.2",
+    "mongodb": "^7.1.1",
+    "mongoose": "^9.4.1",
     "next": "14.0.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
