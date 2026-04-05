@@ -19,7 +19,7 @@
 
 <br/>
 
-[**✨ Live Demo**](#) · [**🐛 Report Bug**](https://github.com/pr1yansh-01/HackByte__4.0/issues) · [**💡 Request Feature**](https://github.com/pr1yansh-01/HackByte__4.0/issues)
+[**✨ Live Demo**](https://hack-byte-4-0.vercel.app/) · [**🐛 Report Bug**](https://github.com/pr1yansh-01/HackByte__4.0/issues) · [**💡 Request Feature**](https://github.com/pr1yansh-01/HackByte__4.0/issues)
 
 </div>
 
