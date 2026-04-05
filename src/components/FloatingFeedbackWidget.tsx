@@ -186,7 +186,11 @@ export default function FloatingFeedbackWidget() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) return;
-    if (!email.trim()) return;
+    const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+    if (!email.trim() || !emailRegex.test(email)) {
+      alert('Please enter a valid email address.');
+      return;
+    }
 
     addFeedback({
       title: title.trim(),
@@ -327,15 +331,15 @@ export default function FloatingFeedbackWidget() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Enter your Email ID
+                Your Email
               </label>
-              <textarea
+              <input
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Please enter your email ID"
-                rows={1}
+                placeholder="user@example.com"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
               />
             </div>
 

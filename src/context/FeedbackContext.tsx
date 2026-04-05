@@ -124,56 +124,32 @@ function seedFeedbacks(): Feedback[] {
 export function FeedbackProvider({ children }: { children: ReactNode }) {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>(seedFeedbacks);
 
-  const fetchFeedbacks = useCallback(async () => {
-    try {
-      const response = await fetch('/api/feedback');
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        const mapped = data.map((f: any) => ({
-          ...f,
-          id: f._id,
-          createdAt: new Date(f.createdAt),
-          updatedAt: new Date(f.updatedAt),
-          replies: f.replies?.map((r: any) => ({ ...r, createdAt: new Date(r.createdAt) })) || []
-        }));
-        setFeedbacks(assignPrioritiesByVoteRank(mapped));
-      }
-    } catch (error) {
-      console.error('Failed to fetch feedbacks:', error);
-    }
+  const refreshFeatureVotes = useCallback(() => {
+    fetch('/api/feature-votes')
+      .then((r) => r.json())
+      .then((data: { totals?: Record<string, number> }) => {
+        const totals = data.totals ?? {};
+        setFeedbacks((prev) => {
+          const updated = prev.map((f) => {
+            const k = normalizeFeatureKey(f.title);
+            const serverVotes = totals[k] ?? 0;
+            if (serverVotes === f.votes) return f;
+            return { ...f, votes: serverVotes, updatedAt: new Date() };
+          });
+          return assignPrioritiesByVoteRank(updated);
+        });
+      })
+      .catch(() => { });
   }, []);
 
-  const refreshFeatureVotes = useCallback(() => {
-    fetchFeedbacks();
-  }, [fetchFeedbacks]);
-
-  useEffect(() => {
-    refreshFeatureVotes();
-    const id = window.setInterval(refreshFeatureVotes, 12000);
-    return () => clearInterval(id);
-  }, [refreshFeatureVotes]);
-
-  const addFeedback = async (
+  const addFeedback = (
     feedback: Omit<
       Feedback,
       'id' | 'createdAt' | 'updatedAt' | 'similarCount' | 'replies' | 'votes' | 'userVote'
     >
   ) => {
-    try {
-      const response = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(feedback),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        refreshFeatureVotes();
-      }
-    } catch (error) {
-      console.error('Failed to add feedback:', error);
-
-      // Fallback to local state if API fails (for offline dev)
+    const key = normalizeFeatureKey(feedback.title);
+    const apply = (voteTotal: number) => {
       const newFeedback: Feedback = {
         ...feedback,
         id: Date.now().toString(),
@@ -181,12 +157,29 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
         replies: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-        votes: 0,
+        votes: voteTotal,
         userVote: undefined,
       };
-      setFeedbacks((prev) => assignPrioritiesByVoteRank([newFeedback, ...prev]));
-    }
+      setFeedbacks((prev) =>
+        assignPrioritiesByVoteRank([newFeedback, ...prev])
+      );
+    };
+
+    fetch('/api/feature-votes')
+      .then((r) => r.json())
+      .then((data: { totals?: Record<string, number> }) => {
+        const voteTotal = data.totals?.[key] ?? 0;
+        apply(voteTotal);
+      })
+      .catch(() => apply(0));
   };
+
+  /** Merge server vote totals into feedback rows by title key and re-rank priority. */
+  useEffect(() => {
+    refreshFeatureVotes();
+    const id = window.setInterval(refreshFeatureVotes, 8000);
+    return () => clearInterval(id);
+  }, [refreshFeatureVotes]);
 
   const addReply = (
     feedbackId: string,

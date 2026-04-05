@@ -1,7 +1,6 @@
 node_modules/
 .next/
-.env.local
-.env*.local
+.env
 
 # Runtime vote store (created by /api/feature-votes)
 /data/feature-votes.json
