@@ -1,0 +1,11 @@
+{
+  "users": [
+    {
+      "id": "admin-1775346679572-065vayy",
+      "email": "adicode810@gmail.com",
+      "passwordHash": "$2b$10$yaeES0pXAIEAluRU89sMj.wNUZrTe4e4eVdNZDThsu1ihito5EjUK",
+      "name": "Aditya Verma",
+      "createdAt": "2026-04-04T23:51:19.572Z"
+    }
+  ]
+}
