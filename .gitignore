@@ -5,3 +5,6 @@ node_modules/
 
 # Runtime vote store (created by /api/feature-votes)
 /data/feature-votes.json
+
+# Admin accounts (hashed passwords — keep local)
+/data/admin-users.json
